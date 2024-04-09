@@ -1,8 +1,9 @@
 ESX = exports["es_extended"]:getSharedObject()
 
 local robberyStarted = false
-
 local robberyTimer = nil
+local player = nil
+local status = false
 
 local startRobberyBlip = function(pro)
     if pro == true then
@@ -114,12 +115,17 @@ Citizen.CreateThread(function()
     local rob = vector3(3625.49, 3761.47, 28.52)
     local dist = #(GetEntityCoords(GetPlayerPed(-1)) - hack1)
     local dist2 = #(GetEntityCoords(GetPlayerPed(-1)) - rob)
+    player = GetPlayerPed(-1);
+    local emoteToPlay = "Ide az anim"
     if robberyStarted == true then
         DrawMarker(21, hack1.x, hack1.y, hack1.z, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 1.0, 1.0, 1.0, 255, 0, 0, 50, false, true, 2, nil, nil, false)
         if dist <= 2.5 then
             DrawText3D(hack1.x, hack1.y, hack1.z, "~g~Nyomj E-t a Hackeles elkezdéséhez")
             if IsControlJustPressed(0, 38) then
                 exports['progressBars']:startUI(25000, "Hacking...")
+                if GetVehiclePedIsIn(player, false) ~= 0 then return end; -- wont play emotes in any vehicle
+                startEmote(emoteToPlay)
+                end
                 hackComplete()
             end
         end
@@ -129,6 +135,9 @@ Citizen.CreateThread(function()
                 DrawText3D(rob.x, rob.y, rob.z, "~g~Nyomj E-t a Szef Kirablasahoz")
                 if IsControlJustPressed(0, 38) then
                     exports['progressBars']:startUI(25000, "Feltores...")
+                    if GetVehiclePedIsIn(player, false) ~= 0 then return end; -- wont play emotes in any vehicle
+                    startEmote(emoteToPlay)
+                    end
                     Wait(25000)
                     stopCrackSafe()
                     TriggerServerEvent('payout', source)
@@ -198,6 +207,37 @@ function DrawText3D(x, y, z, text)
     local factor = (string.len(text)) / 370
     DrawRect(_x,_y+0.0125, 0.015+ factor, 0.03, 41, 11, 41, 68)
 end
+
+
+
+function startEmote(anim)
+    if emotes[anim] and player and status == false then 
+    -- checks if the emote actually exists in the table, if the player is defined, and if there is no emote playing
+        TaskStartScenarioInPlace(player, emotes[anim].anim, 0, true)
+        status = true
+    else 
+        return; 
+    end;
+end
+
+Citizen.CreateThread(function()
+    while true do
+    --while the emote is being played for the bed, this thread will listen to any movement keys being pressed to cancel the emote
+        if status then
+            if 
+                IsControlPressed(1, 32) --[[ "W" key ]]
+                or IsControlPressed(1, 34) --[[ "A" key ]] 
+                or IsControlPressed(1, 33) --[[ "S" key ]]
+                or IsControlPressed(1, 35) --[[ "D" key ]]
+                or IsControlPressed(1, 55) --[[ "SPACEBAR" key ]] 
+            then
+                ClearPedTasks(player);
+                status = false
+            end
+        end
+        Citizen.Wait(0)
+    end
+end)
 
 
 
